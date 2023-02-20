@@ -154,8 +154,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2caad72004176c643a9c369351a75714, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  xSize: 38
-  zSize: 38
+  xSize: 30
+  zSize: 30
 --- !u!23 &109730023
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -494,7 +494,7 @@ GameObject:
   - component: {fileID: 2140264253}
   - component: {fileID: 2140264252}
   m_Layer: 0
-  m_Name: Map Generator
+  m_Name: Noise Map Generator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -542,5 +542,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mapWidth: 100
   mapHeight: 100
-  noiseScale: 14.03
+  noiseScale: 10
+  octaves: 4
+  persistance: 0.5
+  lacunarity: 2
+  seed: 6
+  offset: {x: 14.5, y: 5.42}
   autoUpdate: 1
