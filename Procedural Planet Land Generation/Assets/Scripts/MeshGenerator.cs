@@ -1,63 +1,57 @@
 using UnityEngine;
 
-[RequireComponent(typeof(MeshFilter))]
-public class MeshGenerator : MonoBehaviour
-{
-    Mesh mesh;
-    Vector3[] vertices;
-    int[] triangles;
+public static class MeshGenerator {
 
-    [Header ("Mesh Size")]
-    [SerializeField]
-    private int xSize;
-    [SerializeField]
-    private int zSize;
+    public static MeshData GenerateTerrainMesh(float[,] heightMap) {
+        int width = heightMap.GetLength(0);
+        int height = heightMap.GetLength(1);
+        float topLeftX = (width - 1) / -2f;
+        float topLeftZ = (height - 1) / 2f;
 
-    private void Start() {
-        mesh = new Mesh();
-        GetComponent<MeshFilter>().mesh = mesh;
+        MeshData meshData = new MeshData (width, height);
 
-        CreateShape();
-        UpdateMesh();
-    }
+        for (int y = 0, vertexIndex = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                meshData.vertices[vertexIndex] = new Vector3 (topLeftX + x, heightMap [x, y], topLeftZ - y);
+                meshData.uvs[vertexIndex] = new Vector2 (x / (float)width, y / (float)height);
 
-    private void CreateShape() {
-        vertices = new Vector3[(xSize + 1) * (zSize + 1)];
-
-        for (int i= 0, z = 0; z < zSize + 1; z++) {
-            for (int x = 0; x < xSize + 1; x++) {
-                float y = Mathf.PerlinNoise(x * .3f, z * .3f) * 2f;
-                vertices[i] = new Vector3(x, y, z);
-                i++;
+                // Create a square from 2 triangle meshes
+                if (x < width - 1 && y < height - 1) {
+                    meshData.AddTriangle (vertexIndex, vertexIndex + width + 1, vertexIndex + width);
+                    meshData.AddTriangle (vertexIndex + width + 1, vertexIndex, vertexIndex + 1);
+                }
+                vertexIndex++;
             }
         }
+        return meshData;
+    }
+}
 
-        triangles = new int[xSize * zSize * 6];
+public class MeshData {
+    public Vector3[] vertices;
+    public int[] triangles;
+    public Vector2[] uvs;
+    int triangleIndex;
 
-        int vert = 0;
-        int tris = 0;
-        for (int z = 0; z < zSize; z++) {
-            for (int x = 0; x < xSize; x++) { 
-                triangles[tris + 0] = vert + 0;
-                triangles[tris + 1] = vert + xSize + 1;
-                triangles[tris + 2] = vert + 1;
-                triangles[tris + 3] = vert + 1;
-                triangles[tris + 4] = vert + xSize + 1;
-                triangles[tris + 5] = vert + xSize + 2;
-
-                vert++;
-                tris += 6;
-            }
-            vert++;
-        }
+    public MeshData(int meshWidth, int meshHeight) {
+        vertices = new Vector3[meshWidth * meshHeight];
+        uvs = new Vector2[meshWidth * meshHeight];
+        triangles = new int[(meshWidth-1)*(meshHeight-1)*6];
     }
 
-    private void UpdateMesh() {
-        mesh.Clear();
+    public void AddTriangle(int first, int second, int third) {
+        triangles[triangleIndex] = first;
+        triangles[triangleIndex + 1] = second;
+        triangles[triangleIndex + 2] = third;
+        triangleIndex += 3;
+    }
 
+    public Mesh CreateMesh() {
+        Mesh mesh = new Mesh ();
         mesh.vertices = vertices;
         mesh.triangles = triangles;
-
-        mesh.RecalculateNormals();
+        mesh.uv = uvs;
+        mesh.RecalculateNormals ();
+        return mesh;
     }
 }
