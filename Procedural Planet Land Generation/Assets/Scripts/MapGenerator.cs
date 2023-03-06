@@ -5,17 +5,24 @@ public class MapGenerator : MonoBehaviour
     public enum DrawMode {NoiseMap, ColourMap, Mesh};
     public DrawMode drawMode;
 
+    [Header ("Map Size")]
     public int mapWidth;
     public int mapHeight;
-    public float noiseScale;
 
+    [Header ("Noise Settings")]
+    public float noiseScale;
     public int octaves;
     [Range(0,1)]
     public float persistance;
     public float lacunarity;
 
+    [Header ("Map Randomness")]
     public int seed;
     public Vector2 offset;
+
+    [Header ("Mesh Settings")]
+    public float meshHeightMultiply;
+    public AnimationCurve meshHeightCurve;
 
     public bool autoUpdate;
 
@@ -43,7 +50,7 @@ public class MapGenerator : MonoBehaviour
         } else if (drawMode == DrawMode.ColourMap) {
             display.DrawTexture(TextureGenerator.TextureFromColourMap(colourMap, mapWidth, mapHeight));
         } else if (drawMode == DrawMode.Mesh) {
-            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap), TextureGenerator.TextureFromColourMap(colourMap, mapWidth, mapHeight));
+            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap, meshHeightMultiply, meshHeightCurve), TextureGenerator.TextureFromColourMap(colourMap, mapWidth, mapHeight));
         }  
     }
 
@@ -62,6 +69,10 @@ public class MapGenerator : MonoBehaviour
 
         if (octaves < 0) {
             octaves = 0;
+        }
+
+        if (meshHeightMultiply < 1) {
+            meshHeightMultiply = 1;
         }
     }
 }
