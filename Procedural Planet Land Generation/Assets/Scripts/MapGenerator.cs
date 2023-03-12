@@ -5,32 +5,47 @@ public class MapGenerator : MonoBehaviour
     public enum DrawMode {NoiseMap, ColourMap, Mesh};
     public DrawMode drawMode;
 
+    // References to Data
+    public TerrainData terrainData;
+    public NoiseData noiseData;
+    public TextureData textureData;
+
+    public Material terrainMaterial;
+
     [Header ("Map Size")]
     public int mapWidth;
     public int mapHeight;
-
-    [Header ("Noise Settings")]
-    public float noiseScale;
-    public int octaves;
-    [Range(0,1)]
-    public float persistance;
-    public float lacunarity;
-
-    [Header ("Map Randomness")]
-    public int seed;
-    public Vector2 offset;
-
-    [Header ("Mesh Settings")]
-    public float meshHeightMultiply;
-    public AnimationCurve meshHeightCurve;
 
     public bool autoUpdate;
 
     public TerrainType[] regions;
 
-    public void GenerateMap() {
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, seed, noiseScale, octaves, persistance, lacunarity, offset);
+    private void OnValuesUpdated() {
+        if (!Application.isPlaying) {
+            DrawMapEditor();
+        }
+    }
 
+    private void OnTextureValuesUpdated() {
+        textureData.ApplyToMaterial(terrainMaterial);
+    }
+
+    public void DrawMapEditor() {
+        MapData mapData = GenerateMapData();
+        MapDisplay display = FindObjectOfType<MapDisplay>();
+        if (drawMode == DrawMode.NoiseMap) {
+            display.DrawTexture(TextureGenerator.TextureFromHeightMap(mapData.heightMap));
+        } else if (drawMode == DrawMode.ColourMap) {
+            display.DrawTexture(TextureGenerator.TextureFromColourMap(mapData.colourMap, mapWidth, mapHeight));
+        } else if (drawMode == DrawMode.Mesh) {
+            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(mapData.heightMap, terrainData.meshHeightMultiply, terrainData.meshHeightCurve));
+        }
+    }
+
+    MapData GenerateMapData() {
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, noiseData.seed, noiseData.noiseScale, noiseData.octaves, noiseData.persistance, noiseData.lacunarity, noiseData.offset);
+
+        // Create Colour Map
         Color[] colourMap = new Color[mapWidth * mapHeight];
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {
@@ -43,36 +58,32 @@ public class MapGenerator : MonoBehaviour
                 }
             }
         }
+        textureData.UpdateMeshHeights(terrainMaterial, terrainData.minHeight, terrainData.maxHeight);
 
-        MapDisplay display = FindObjectOfType<MapDisplay>();
-        if (drawMode == DrawMode.NoiseMap) {
-            display.DrawTexture(TextureGenerator.TextureFromHeightMap(noiseMap));
-        } else if (drawMode == DrawMode.ColourMap) {
-            display.DrawTexture(TextureGenerator.TextureFromColourMap(colourMap, mapWidth, mapHeight));
-        } else if (drawMode == DrawMode.Mesh) {
-            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap, meshHeightMultiply, meshHeightCurve), TextureGenerator.TextureFromColourMap(colourMap, mapWidth, mapHeight));
-        }  
+        return new MapData(noiseMap, colourMap);
     }
 
     private void OnValidate() {
+        if (terrainData != null) {
+            // Maintain 1 subscriber data
+            terrainData.OnValuesUpdated -= OnValuesUpdated;
+            terrainData.OnValuesUpdated += OnValuesUpdated;
+        }
+        if (noiseData != null) {
+            // Maintain 1 subscriber data
+            noiseData.OnValuesUpdated -= OnValuesUpdated;
+            noiseData.OnValuesUpdated += OnValuesUpdated;
+        }
         if (mapWidth < 1) {
             mapWidth = 1;
         }
-
         if (mapHeight < 1) {
             mapHeight = 1;
         }
-
-        if (lacunarity < 1) {
-            lacunarity = 1;
-        }
-
-        if (octaves < 0) {
-            octaves = 0;
-        }
-
-        if (meshHeightMultiply < 1) {
-            meshHeightMultiply = 1;
+        if (textureData!= null) {
+            // Maintain 1 subscriber data
+            textureData.OnValuesUpdated -= OnTextureValuesUpdated;
+            textureData.OnValuesUpdated += OnTextureValuesUpdated;
         }
     }
 }
@@ -82,4 +93,14 @@ public struct TerrainType {
     public string name;
     public float height;
     public Color colour;
+}
+
+public struct MapData {
+    public float[,] heightMap;
+    public Color[] colourMap;
+
+    public MapData (float[,] heightMap, Color[] colourMap) {
+        this.heightMap = heightMap;
+        this.colourMap = colourMap;
+    }
 }
